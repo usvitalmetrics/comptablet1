@@ -120,103 +120,53 @@
     <button onclick="generateTable()">Generate Comparison Table</button>
     <div id="comparisonTable"></div>
 
-    <script>
-        let data = [];
-        const selectedUniversities = new Set();
-        const selectedMetrics = new Set();
+<script>
+  const headers = [
+    'Institution',
+    'City',
+    'State',
+    'Religion',
+    'Universities in State',
+    'First Time Full Time',
+    'Graduation Rate (%)',
+    'Degrees Awarded',
+    'FTE Faculty',
+    'FTE Students',
+    'Average Course Size',
+    'Degrees per Faculty',
+    'Net Assets',
+    'Total Assets',
+    'Net Income',
+    'Total Revenue',
+    'Instructional Expenses',
+    'CSI Score',
+    'Rank'
+  ];
 
-        fetch('./university_data_tier1.json')
-            .then(response => response.json())
-            .then(json => {
-                data = json;
-                init();
-            });
+  // Load data and populate table
+  fetch('university_data_tier1.json')
+    .then(response => response.json())
+    .then(data => {
+      const table = document.getElementById('data-table');
+      const thead = table.createTHead();
+      const headerRow = thead.insertRow();
 
-        function init() {
-            const universities = [...new Set(data.map(d => d["University"]))];
-            const metrics = Object.keys(data[0]).filter(k => k !== "University");
+      headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
 
-            window.renderUniversityList = function() {
-                const filter = document.getElementById("searchBox").value.toLowerCase();
-                const container = document.getElementById("universityList");
-                container.innerHTML = "";
-                universities
-                    .filter(u => u.toLowerCase().includes(filter))
-                    .forEach(univ => {
-                        const div = document.createElement("div");
-                        div.textContent = univ;
-                        div.className = "list-item";
-                        div.onclick = function () {
-                            if (selectedUniversities.has(univ)) {
-                                selectedUniversities.delete(univ);
-                                div.classList.remove("selected");
-                            } else {
-                                if (selectedUniversities.size < 8) {
-                                    selectedUniversities.add(univ);
-                                    div.classList.add("selected");
-                                } else {
-                                    alert("You can select up to 8 universities.");
-                                }
-                            }
-                            document.getElementById("univCount").textContent = selectedUniversities.size;
-                        };
-                        container.appendChild(div);
-                    });
-            }
+      const tbody = table.createTBody();
+      data.forEach(item => {
+        const row = tbody.insertRow();
+        headers.forEach(key => {
+          const cell = row.insertCell();
+          cell.textContent = item[key] !== undefined ? item[key] : '';
+        });
+      });
+    });
+</script>
 
-            window.toggleMetric = function(element, metric) {
-                if (selectedMetrics.has(metric)) {
-                    selectedMetrics.delete(metric);
-                    element.classList.remove("selected");
-                } else {
-                    if (selectedMetrics.size < 5) {
-                        selectedMetrics.add(metric);
-                        element.classList.add("selected");
-                    } else {
-                        alert("You can select up to 5 metrics.");
-                    }
-                }
-                document.getElementById("metricCount").textContent = selectedMetrics.size;
-            }
-
-            window.generateTable = function() {
-                if (selectedUniversities.size === 0 || selectedMetrics.size === 0) {
-                    alert("Please select at least one university and one metric.");
-                    return;
-                }
-                let html = "<table><thead><tr><th>University</th>";
-                selectedMetrics.forEach(metric => {
-                    html += `<th>${metric}</th>`;
-                });
-                html += "</tr></thead><tbody>";
-
-                data.filter(d => selectedUniversities.has(d["University"]))
-                    .forEach(d => {
-                        html += "<tr><td>" + d["University"] + "</td>";
-                        selectedMetrics.forEach(metric => {
-                            html += "<td>" + (d[metric] !== null ? d[metric] : "") + "</td>";
-                        });
-                        html += "</tr>";
-                    });
-                html += "</tbody></table>";
-                document.getElementById("comparisonTable").innerHTML = html;
-            }
-
-            const metricList = document.getElementById("metricList");
-            metrics.forEach(metric => {
-                const div = document.createElement("div");
-                div.className = "list-item";
-                div.textContent = metric;
-                div.onclick = function() { toggleMetric(div, metric); };
-                metricList.appendChild(div);
-            });
-
-            renderUniversityList();
-        }
-
-        window.filterUniversities = function() {
-            renderUniversityList();
-        }
-    </script>
 </body>
 </html>
