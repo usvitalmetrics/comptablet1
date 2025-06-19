@@ -12,7 +12,7 @@
     label { font-weight: bold; display: block; margin-top: 20px; }
     input[type="text"] { width: 100%; padding: 5px; margin: 10px 0; }
 
-    .selectable-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
     .tag {
       background-color: #f0f0f0;
       border: 1px solid #ccc;
@@ -27,6 +27,25 @@
       border-color: #0056b3;
     }
 
+    .autocomplete-results {
+      position: relative;
+    }
+    .autocomplete-list {
+      position: absolute;
+      background-color: white;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      width: 100%;
+      z-index: 10;
+    }
+    .autocomplete-item {
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .autocomplete-item:hover {
+      background-color: #f0f0f0;
+    }
     details { margin: 20px 0; }
   </style>
 </head>
@@ -41,29 +60,26 @@
     <p><strong>University:</strong> Name of the institution.</p>
     <p><strong>City / State:</strong> Geographic location of the institution.</p>
     <p><strong>Religion:</strong> Religious affiliation, if applicable.</p>
-    <p><strong>Universities in State:</strong> Number of universities in the same state.</p>
-    <p><strong>FTFT:</strong> First-time, full-time undergraduate students.</p>
-    <p><strong>Graduation Rate:</strong> Percent of students projected to graduate.</p>
-    <p><strong>Degrees Awarded:</strong> Total number of degrees expected to be awarded.</p>
-    <p><strong>FTE Faculty / Students:</strong> Full-time equivalent faculty or student headcount.</p>
-    <p><strong>Average Course Size:</strong> Average number of students per course section.</p>
-    <p><strong>Degrees per Faculty:</strong> Ratio of degrees awarded to faculty FTE.</p>
-    <p><strong>Net Assets:</strong> Total assets minus liabilities.</p>
-    <p><strong>Total Assets:</strong> All assets held by the institution.</p>
-    <p><strong>Net Income:</strong> Total revenue minus expenses.</p>
-    <p><strong>Total Revenue:</strong> Sum of all revenue sources.</p>
-    <p><strong>Instructional Expenses:</strong> Spending on instructional programs.</p>
-    <p><strong>Collegiate Survivability Index:</strong> Relative institutional stability (higher is better).</p>
-    <p><strong>Rank:</strong> National rank of viability out of all private nonprofit universities.</p>
+    <p><strong>Universities in State:</strong> Count of colleges in the same state.</p>
+    <p><strong>FTFT:</strong> First-time, full-time undergraduates.</p>
+    <p><strong>Graduation Rate:</strong> Percentile of expected graduates.</p>
+    <p><strong>Degrees Awarded:</strong> Total expected degrees conferred.</p>
+    <p><strong>FTE Faculty / Students:</strong> Full-time equivalent faculty or students.</p>
+    <p><strong>Average Course Size:</strong> Projected average enrollment per course.</p>
+    <p><strong>Degrees per Faculty:</strong> Instructional output per faculty member.</p>
+    <p><strong>Net/Total Assets, Revenue, Income:</strong> Financial position metrics in USD.</p>
+    <p><strong>Instructional Expenses:</strong> Budget allocated to teaching.</p>
+    <p><strong>Collegiate Survivability Index:</strong> Institutional strength percentile (higher is better).</p>
+    <p><strong>Rank:</strong> Rank out of 843 universities in the dataset.</p>
   </div>
 </details>
 
-<label for="searchInput">Search Universities:</label>
-<input type="text" id="searchInput" placeholder="Type to search...">
-<div id="universityTags" class="selectable-list"></div>
+<label for="universitySearch">Type to Select up to 8 Universities:</label>
+<input type="text" id="universitySearch" placeholder="Start typing a university name...">
+<div id="autocompleteContainer" class="autocomplete-results"></div>
 
 <label>Select up to 5 Metrics:</label>
-<div id="metricTags" class="selectable-list"></div>
+<div id="metricTags" class="tag-list"></div>
 
 <button onclick="generateCustomTable()">Generate Comparison Table</button>
 
@@ -82,6 +98,7 @@
   ];
 
   let allData = [];
+  let selectedUniversities = [];
 
   function formatValue(metric, value) {
     if (metric === 'Collegiate Survivability Index' || metric === 'Graduation Rate') {
@@ -93,54 +110,61 @@
     }
   }
 
-  function toggleSelection(tag, list, maxAllowed) {
-    if (tag.classList.contains('selected')) {
-      tag.classList.remove('selected');
-    } else {
-      const selectedCount = list.querySelectorAll('.selected').length;
-      if (selectedCount >= maxAllowed) {
-        alert("Maximum selection limit reached.");
-        return;
-      }
-      tag.classList.add('selected');
-    }
-  }
-
-  function populateTags(data) {
-    const universitySet = new Set(data.map(d => d.University));
-    const universityContainer = document.getElementById('universityTags');
-    const metricContainer = document.getElementById('metricTags');
-
-    universitySet.forEach(uni => {
-      const tag = document.createElement('div');
-      tag.className = 'tag';
-      tag.textContent = uni;
-      tag.dataset.value = uni;
-      tag.addEventListener('click', () => toggleSelection(tag, universityContainer, maxUniversities));
-      universityContainer.appendChild(tag);
-    });
-
+  function renderMetricTags() {
+    const container = document.getElementById('metricTags');
     allMetrics.forEach(metric => {
       const tag = document.createElement('div');
       tag.className = 'tag';
       tag.textContent = metric;
       tag.dataset.value = metric;
-      tag.addEventListener('click', () => toggleSelection(tag, metricContainer, maxMetrics));
-      metricContainer.appendChild(tag);
-    });
-
-    document.getElementById('searchInput').addEventListener('input', function() {
-      const search = this.value.toLowerCase();
-      universityContainer.querySelectorAll('.tag').forEach(tag => {
-        tag.style.display = tag.textContent.toLowerCase().includes(search) ? 'inline-block' : 'none';
+      tag.addEventListener('click', () => {
+        tag.classList.toggle('selected');
+        const selected = container.querySelectorAll('.selected');
+        if (selected.length > maxMetrics) {
+          tag.classList.remove('selected');
+          alert("Select no more than 5 metrics.");
+        }
       });
+      container.appendChild(tag);
     });
   }
 
-  function generateCustomTable() {
-    const selectedUniversities = Array.from(document.querySelectorAll('#universityTags .selected')).map(tag => tag.dataset.value);
-    const selectedMetrics = Array.from(document.querySelectorAll('#metricTags .selected')).map(tag => tag.dataset.value);
+  function renderAutocompleteMatches(matches) {
+    const container = document.getElementById('autocompleteContainer');
+    container.innerHTML = '';
+    const list = document.createElement('div');
+    list.className = 'autocomplete-list';
+    matches.forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.textContent = name;
+      item.addEventListener('click', () => {
+        if (selectedUniversities.includes(name)) return;
+        if (selectedUniversities.length >= maxUniversities) {
+          alert("You can select up to 8 universities.");
+          return;
+        }
+        selectedUniversities.push(name);
+        document.getElementById('universitySearch').value = '';
+        container.innerHTML = '';
+        renderSelectedUniversities();
+      });
+      list.appendChild(item);
+    });
+    container.appendChild(list);
+  }
 
+  function renderSelectedUniversities() {
+    const table = document.getElementById('comparison-table');
+    table.innerHTML = '';
+    const div = document.getElementById('autocompleteContainer');
+    const selectedDisplay = document.createElement('div');
+    selectedDisplay.innerHTML = '<strong>Selected:</strong> ' + selectedUniversities.join(', ');
+    div.appendChild(selectedDisplay);
+  }
+
+  function generateCustomTable() {
+    const selectedMetrics = Array.from(document.querySelectorAll('#metricTags .selected')).map(tag => tag.dataset.value);
     if (selectedUniversities.length === 0 || selectedMetrics.length === 0) {
       alert("Please select at least one university and one metric.");
       return;
@@ -154,7 +178,6 @@
     const thBlank = document.createElement('th');
     thBlank.textContent = 'University';
     headerRow.appendChild(thBlank);
-
     selectedMetrics.forEach(metric => {
       const th = document.createElement('th');
       th.textContent = metric;
@@ -167,7 +190,6 @@
         const row = tbody.insertRow();
         const uniCell = row.insertCell();
         uniCell.textContent = entry.University;
-
         selectedMetrics.forEach(metric => {
           const cell = row.insertCell();
           cell.textContent = formatValue(metric, entry[metric]);
@@ -180,7 +202,14 @@
     .then(response => response.json())
     .then(data => {
       allData = data;
-      populateTags(data);
+      const universityNames = [...new Set(data.map(d => d.University))];
+      renderMetricTags();
+
+      document.getElementById('universitySearch').addEventListener('input', function () {
+        const query = this.value.toLowerCase();
+        const matches = universityNames.filter(name => name.toLowerCase().includes(query));
+        renderAutocompleteMatches(matches.slice(0, 10));
+      });
     });
 </script>
 
