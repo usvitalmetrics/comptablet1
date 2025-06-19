@@ -3,55 +3,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>University Comparison Table</title>
+  <title>Custom University Comparison</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #f4f4f4; }
-    details { margin: 20px 0; }
+    select { margin: 10px 0; padding: 5px; width: 100%; }
+    label { font-weight: bold; display: block; margin-top: 20px; }
   </style>
 </head>
 <body>
 
-<h1>University Comparison Tool</h1>
+<h2>🎓 Custom University Comparison Tool</h2>
 
-<details>
-  <summary><strong>📘 Metric Definitions (click to expand)</strong></summary>
-  <div style="margin-top: 10px; line-height: 1.6; font-size: 15px;">
-    <p><strong>Institution:</strong> University name.</p>
-    <p><strong>City / State:</strong> Geographic location of the institution.</p>
-    <p><strong>Religion:</strong> Religious affiliation, if any.</p>
-    <p><strong>Universities in State:</strong> Total number of universities in that state.</p>
-    <p><strong>First Time Full Time (FTFT):</strong> Projected 2028 count of first-time, full-time undergraduates.</p>
-    <p><strong>Graduation Rate (%):</strong> Projected 2028 graduation rate as a percentage.</p>
-    <p><strong>Degrees Awarded:</strong> Projected total number of degrees awarded in 2028.</p>
-    <p><strong>FTE Faculty:</strong> Projected full-time equivalent instructional faculty.</p>
-    <p><strong>FTE Students:</strong> Projected full-time equivalent student enrollment.</p>
-    <p><strong>Average Course Size:</strong> Projected average number of students per course in 2028.</p>
-    <p><strong>Degrees per Faculty:</strong> Degrees awarded divided by FTE faculty.</p>
-    <p><strong>Net Assets:</strong> Projected 2028 net assets (assets minus liabilities).</p>
-    <p><strong>Total Assets:</strong> Projected 2028 total institutional assets.</p>
-    <p><strong>Net Income:</strong> Projected revenue minus expenses for 2028.</p>
-    <p><strong>Total Revenue:</strong> Projected total revenue from all sources in 2028.</p>
-    <p><strong>Instructional Expenses:</strong> Projected spending on instruction in 2028.</p>
-    <p><strong>CSI Score:</strong> Collegiate Survivability Index score. Higher indicates better long-term viability.</p>
-    <p><strong>Rank:</strong> National ranking among private, nonprofit institutions.</p>
-  </div>
-</details>
+<label for="universitySelect">Select up to 8 Universities:</label>
+<select id="universitySelect" multiple size="10"></select>
 
-<button onclick="generateTable()">Generate Comparison Table</button>
-<table id="data-table"></table>
+<label for="metricSelect">Select up to 5 Metrics:</label>
+<select id="metricSelect" multiple size="10"></select>
+
+<button onclick="generateCustomTable()">Generate Comparison Table</button>
+
+<table id="comparison-table"></table>
 
 <script>
-  const headers = [
-    'Institution',
+  const maxUniversities = 8;
+  const maxMetrics = 5;
+
+  const allMetrics = [
     'City',
     'State',
     'Religion',
     'Universities in State',
-    'First Time Full Time',
-    'Graduation Rate (%)',
+    'FTFT',
+    'Graduation Rate',
     'Degrees Awarded',
     'FTE Faculty',
     'FTE Students',
@@ -62,35 +48,85 @@
     'Net Income',
     'Total Revenue',
     'Instructional Expenses',
-    'CSI Score',
+    'Collegiate Survivability Index',
     'Rank'
   ];
 
-  function generateTable() {
-    fetch('university_data_tier1.json')
-      .then(response => response.json())
-      .then(data => {
-        const table = document.getElementById('data-table');
-        table.innerHTML = ''; // Clear previous content
+  let allData = [];
 
-        const thead = table.createTHead();
-        const headerRow = thead.insertRow();
-        headers.forEach(header => {
-          const th = document.createElement('th');
-          th.textContent = header;
-          headerRow.appendChild(th);
-        });
+  function populateSelectors(data) {
+    const universitySet = new Set(data.map(d => d.University));
+    const universitySelect = document.getElementById('universitySelect');
+    const metricSelect = document.getElementById('metricSelect');
 
-        const tbody = table.createTBody();
-        data.forEach(item => {
-          const row = tbody.insertRow();
-          headers.forEach(key => {
-            const cell = row.insertCell();
-            cell.textContent = item[key] !== undefined ? item[key] : '';
-          });
-        });
-      });
+    universitySet.forEach(uni => {
+      const opt = document.createElement('option');
+      opt.value = uni;
+      opt.textContent = uni;
+      universitySelect.appendChild(opt);
+    });
+
+    allMetrics.forEach(metric => {
+      const opt = document.createElement('option');
+      opt.value = metric;
+      opt.textContent = metric;
+      metricSelect.appendChild(opt);
+    });
   }
+
+  function generateCustomTable() {
+    const selectedUniversities = Array.from(document.getElementById('universitySelect').selectedOptions).map(o => o.value);
+    const selectedMetrics = Array.from(document.getElementById('metricSelect').selectedOptions).map(o => o.value);
+
+    if (selectedUniversities.length === 0 || selectedMetrics.length === 0) {
+      alert("Please select at least one university and one metric.");
+      return;
+    }
+    if (selectedUniversities.length > maxUniversities) {
+      alert("Please select no more than " + maxUniversities + " universities.");
+      return;
+    }
+    if (selectedMetrics.length > maxMetrics) {
+      alert("Please select no more than " + maxMetrics + " metrics.");
+      return;
+    }
+
+    const table = document.getElementById('comparison-table');
+    table.innerHTML = '';
+
+    const thead = table.createTHead();
+    const headerRow = thead.insertRow();
+    const thBlank = document.createElement('th');
+    thBlank.textContent = 'University';
+    headerRow.appendChild(thBlank);
+
+    selectedMetrics.forEach(metric => {
+      const th = document.createElement('th');
+      th.textContent = metric;
+      headerRow.appendChild(th);
+    });
+
+    const tbody = table.createTBody();
+    allData.forEach(entry => {
+      if (selectedUniversities.includes(entry.University)) {
+        const row = tbody.insertRow();
+        const uniCell = row.insertCell();
+        uniCell.textContent = entry.University;
+
+        selectedMetrics.forEach(metric => {
+          const cell = row.insertCell();
+          cell.textContent = entry[metric] !== undefined ? entry[metric] : '';
+        });
+      }
+    });
+  }
+
+  fetch('university_data_tier1.json')
+    .then(response => response.json())
+    .then(data => {
+      allData = data;
+      populateSelectors(data);
+    });
 </script>
 
 </body>
