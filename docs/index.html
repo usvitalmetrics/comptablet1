@@ -11,9 +11,23 @@
     th { background-color: #f4f4f4; }
     label { font-weight: bold; display: block; margin-top: 20px; }
     input[type="text"] { width: 100%; padding: 5px; margin: 10px 0; }
-    .checkbox-list { max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 5px; }
-    .checkbox-item { display: flex; align-items: center; margin-bottom: 4px; }
-    .checkbox-item input[type="checkbox"] { margin-right: 8px; }
+
+    .selectable-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .tag {
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      padding: 5px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .tag.selected {
+      background-color: #007BFF;
+      color: white;
+      border-color: #0056b3;
+    }
+
+    details { margin: 20px 0; }
   </style>
 </head>
 <body>
@@ -27,18 +41,29 @@
     <p><strong>University:</strong> Name of the institution.</p>
     <p><strong>City / State:</strong> Geographic location of the institution.</p>
     <p><strong>Religion:</strong> Religious affiliation, if applicable.</p>
-    <p><strong>FTFT:</strong> Projected first-time, full-time students.</p>
-    <p><strong>Graduation Rate:</strong> Projected 2028 percentile graduation rate.</p>
-    <p><strong>Collegiate Survivability Index:</strong> Percentile indicating long-term viability.</p>
+    <p><strong>Universities in State:</strong> Number of universities in the same state.</p>
+    <p><strong>FTFT:</strong> First-time, full-time undergraduate students.</p>
+    <p><strong>Graduation Rate:</strong> Percent of students projected to graduate.</p>
+    <p><strong>Degrees Awarded:</strong> Total number of degrees expected to be awarded.</p>
+    <p><strong>FTE Faculty / Students:</strong> Full-time equivalent faculty or student headcount.</p>
+    <p><strong>Average Course Size:</strong> Average number of students per course section.</p>
+    <p><strong>Degrees per Faculty:</strong> Ratio of degrees awarded to faculty FTE.</p>
+    <p><strong>Net Assets:</strong> Total assets minus liabilities.</p>
+    <p><strong>Total Assets:</strong> All assets held by the institution.</p>
+    <p><strong>Net Income:</strong> Total revenue minus expenses.</p>
+    <p><strong>Total Revenue:</strong> Sum of all revenue sources.</p>
+    <p><strong>Instructional Expenses:</strong> Spending on instructional programs.</p>
+    <p><strong>Collegiate Survivability Index:</strong> Relative institutional stability (higher is better).</p>
+    <p><strong>Rank:</strong> National rank of viability out of all private nonprofit universities.</p>
   </div>
 </details>
 
 <label for="searchInput">Search Universities:</label>
 <input type="text" id="searchInput" placeholder="Type to search...">
-<div id="universityCheckboxes" class="checkbox-list"></div>
+<div id="universityTags" class="selectable-list"></div>
 
 <label>Select up to 5 Metrics:</label>
-<div id="metricCheckboxes" class="checkbox-list"></div>
+<div id="metricTags" class="selectable-list"></div>
 
 <button onclick="generateCustomTable()">Generate Comparison Table</button>
 
@@ -68,63 +93,56 @@
     }
   }
 
-  function populateSelectors(data) {
+  function toggleSelection(tag, list, maxAllowed) {
+    if (tag.classList.contains('selected')) {
+      tag.classList.remove('selected');
+    } else {
+      const selectedCount = list.querySelectorAll('.selected').length;
+      if (selectedCount >= maxAllowed) {
+        alert("Maximum selection limit reached.");
+        return;
+      }
+      tag.classList.add('selected');
+    }
+  }
+
+  function populateTags(data) {
     const universitySet = new Set(data.map(d => d.University));
-    const universitySelect = document.getElementById('universityCheckboxes');
-    const metricSelect = document.getElementById('metricCheckboxes');
+    const universityContainer = document.getElementById('universityTags');
+    const metricContainer = document.getElementById('metricTags');
 
     universitySet.forEach(uni => {
-      const div = document.createElement('div');
-      div.className = 'checkbox-item';
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.value = uni;
-      checkbox.name = 'university';
-      const label = document.createElement('label');
-      label.textContent = uni;
-      div.appendChild(checkbox);
-      div.appendChild(label);
-      universitySelect.appendChild(div);
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = uni;
+      tag.dataset.value = uni;
+      tag.addEventListener('click', () => toggleSelection(tag, universityContainer, maxUniversities));
+      universityContainer.appendChild(tag);
     });
 
     allMetrics.forEach(metric => {
-      const div = document.createElement('div');
-      div.className = 'checkbox-item';
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.value = metric;
-      checkbox.name = 'metric';
-      const label = document.createElement('label');
-      label.textContent = metric;
-      div.appendChild(checkbox);
-      div.appendChild(label);
-      metricSelect.appendChild(div);
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = metric;
+      tag.dataset.value = metric;
+      tag.addEventListener('click', () => toggleSelection(tag, metricContainer, maxMetrics));
+      metricContainer.appendChild(tag);
     });
 
     document.getElementById('searchInput').addEventListener('input', function() {
       const search = this.value.toLowerCase();
-      const checkboxes = universitySelect.querySelectorAll('.checkbox-item');
-      checkboxes.forEach(div => {
-        const label = div.textContent.toLowerCase();
-        div.style.display = label.includes(search) ? 'flex' : 'none';
+      universityContainer.querySelectorAll('.tag').forEach(tag => {
+        tag.style.display = tag.textContent.toLowerCase().includes(search) ? 'inline-block' : 'none';
       });
     });
   }
 
   function generateCustomTable() {
-    const selectedUniversities = Array.from(document.querySelectorAll('input[name="university"]:checked')).map(cb => cb.value);
-    const selectedMetrics = Array.from(document.querySelectorAll('input[name="metric"]:checked')).map(cb => cb.value);
+    const selectedUniversities = Array.from(document.querySelectorAll('#universityTags .selected')).map(tag => tag.dataset.value);
+    const selectedMetrics = Array.from(document.querySelectorAll('#metricTags .selected')).map(tag => tag.dataset.value);
 
     if (selectedUniversities.length === 0 || selectedMetrics.length === 0) {
       alert("Please select at least one university and one metric.");
-      return;
-    }
-    if (selectedUniversities.length > maxUniversities) {
-      alert("Please select no more than " + maxUniversities + " universities.");
-      return;
-    }
-    if (selectedMetrics.length > maxMetrics) {
-      alert("Please select no more than " + maxMetrics + " metrics.");
       return;
     }
 
@@ -162,7 +180,7 @@
     .then(response => response.json())
     .then(data => {
       allData = data;
-      populateSelectors(data);
+      populateTags(data);
     });
 </script>
 
