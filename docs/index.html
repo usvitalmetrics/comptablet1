@@ -9,14 +9,15 @@
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #f4f4f4; }
-    select { margin: 10px 0; padding: 5px; width: 100%; }
     label { font-weight: bold; display: block; margin-top: 20px; }
-    details { margin: 20px 0; }
+    input[type="text"] { width: 100%; padding: 5px; margin: 10px 0; }
+    .checkbox-list { max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 5px; }
   </style>
 </head>
 <body>
 
 <h2>🎓 Custom University Comparison Tool</h2>
+<p><em>All values represent projections for the year 2028 using the Holt-Winters Forecasting Model.</em></p>
 
 <details>
   <summary><strong>📘 Metric Definitions (click to expand)</strong></summary>
@@ -24,21 +25,23 @@
     <p><strong>University:</strong> Name of the institution.</p>
     <p><strong>City / State:</strong> Geographic location of the institution.</p>
     <p><strong>Religion:</strong> Religious affiliation, if applicable.</p>
-    <p><strong>FTFT:</strong> Projected 2028 first-time, full-time students.</p>
-    <p><strong>FTE Faculty / Students:</strong> Full-time equivalent faculty or students.</p>
+    <p><strong>FTFT:</strong> Projected first-time, full-time students.</p>
+    <p><strong>FTE Faculty / Students:</strong> Full-time equivalent counts.</p>
     <p><strong>Graduation Rate:</strong> Projected graduation percentage.</p>
-    <p><strong>Degrees per Faculty:</strong> Degrees awarded divided by number of FTE faculty.</p>
-    <p><strong>Net/Total Assets, Revenue, Income, Instructional Expenses:</strong> Financial metrics projected for 2028, in USD.</p>
-    <p><strong>Collegiate Survivability Index:</strong> Projected institutional health percentile.</p>
-    <p><strong>Rank:</strong> National comparative ranking.</p>
+    <p><strong>Degrees per Faculty:</strong> Projected degrees per FTE faculty member.</p>
+    <p><strong>Net/Total Assets, Revenue, Income, Instructional Expenses:</strong> Financial projections in USD.</p>
+    <p><strong>Collegiate Survivability Index:</strong> Percentile indicating fiscal and academic strength.</p>
+    <p><strong>Rank:</strong> National comparison rank among private nonprofit universities.</p>
   </div>
 </details>
 
-<label for="universitySelect">Select up to 8 Universities:</label>
-<select id="universitySelect" multiple size="10"></select>
+<label for="searchInput">Search Universities:</label>
+<input type="text" id="searchInput" placeholder="Type to search...">
+
+<div id="universityCheckboxes" class="checkbox-list"></div>
 
 <label for="metricSelect">Select up to 5 Metrics:</label>
-<select id="metricSelect" multiple size="10"></select>
+<select id="metricSelect" multiple size="10" style="width:100%; padding:5px;"></select>
 
 <button onclick="generateCustomTable()">Generate Comparison Table</button>
 
@@ -49,33 +52,22 @@
   const maxMetrics = 5;
 
   const allMetrics = [
-    'City',
-    'State',
-    'Religion',
-    'Universities in State',
-    'FTFT',
-    'Graduation Rate',
-    'Degrees Awarded',
-    'FTE Faculty',
-    'FTE Students',
-    'Average Course Size',
-    'Degrees per Faculty',
-    'Net Assets',
-    'Total Assets',
-    'Net Income',
-    'Total Revenue',
-    'Instructional Expenses',
-    'Collegiate Survivability Index',
-    'Rank'
+    'City', 'State', 'Religion', 'Universities in State', 'FTFT',
+    'Graduation Rate', 'Degrees Awarded', 'FTE Faculty', 'FTE Students',
+    'Average Course Size', 'Degrees per Faculty', 'Net Assets', 'Total Assets',
+    'Net Income', 'Total Revenue', 'Instructional Expenses',
+    'Collegiate Survivability Index', 'Rank'
   ];
 
   let allData = [];
 
   function formatValue(metric, value) {
-    if (metric.includes('Rate') || metric.includes('Index')) {
-      return parseFloat(value).toFixed(1) + '%';
+    if (metric === 'Collegiate Survivability Index') {
+      return parseFloat(value).toFixed(2) + '%';
     } else if (metric.includes('Assets') || metric.includes('Revenue') || metric.includes('Income') || metric.includes('Expenses')) {
-      return '$' + parseFloat(value).toLocaleString();
+      return '$' + parseFloat(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    } else if (metric.includes('Rate')) {
+      return parseFloat(value).toFixed(1) + '%';
     } else {
       return value;
     }
@@ -83,14 +75,20 @@
 
   function populateSelectors(data) {
     const universitySet = new Set(data.map(d => d.University));
-    const universitySelect = document.getElementById('universitySelect');
     const metricSelect = document.getElementById('metricSelect');
+    const checkboxContainer = document.getElementById('universityCheckboxes');
 
     universitySet.forEach(uni => {
-      const opt = document.createElement('option');
-      opt.value = uni;
-      opt.textContent = uni;
-      universitySelect.appendChild(opt);
+      const wrapper = document.createElement('div');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = uni;
+      checkbox.name = 'university';
+      const label = document.createElement('label');
+      label.textContent = uni;
+      wrapper.appendChild(checkbox);
+      wrapper.appendChild(label);
+      checkboxContainer.appendChild(wrapper);
     });
 
     allMetrics.forEach(metric => {
@@ -99,10 +97,19 @@
       opt.textContent = metric;
       metricSelect.appendChild(opt);
     });
+
+    document.getElementById('searchInput').addEventListener('input', function() {
+      const search = this.value.toLowerCase();
+      const checkboxes = checkboxContainer.querySelectorAll('div');
+      checkboxes.forEach(div => {
+        const label = div.textContent.toLowerCase();
+        div.style.display = label.includes(search) ? 'block' : 'none';
+      });
+    });
   }
 
   function generateCustomTable() {
-    const selectedUniversities = Array.from(document.getElementById('universitySelect').selectedOptions).map(o => o.value);
+    const selectedUniversities = Array.from(document.querySelectorAll('input[name="university"]:checked')).map(cb => cb.value);
     const selectedMetrics = Array.from(document.getElementById('metricSelect').selectedOptions).map(o => o.value);
 
     if (selectedUniversities.length === 0 || selectedMetrics.length === 0) {
