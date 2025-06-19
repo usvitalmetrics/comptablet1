@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Custom University Comparison</title>
+  <title>University Comparison Tool</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -11,11 +11,25 @@
     th { background-color: #f4f4f4; }
     select { margin: 10px 0; padding: 5px; width: 100%; }
     label { font-weight: bold; display: block; margin-top: 20px; }
+    details { margin: 20px 0; }
   </style>
 </head>
 <body>
 
 <h2>🎓 Custom University Comparison Tool</h2>
+
+<details>
+  <summary><strong>📘 Metric Definitions (click to expand)</strong></summary>
+  <div style="margin-top: 10px; line-height: 1.6; font-size: 15px;">
+    <p><strong>University:</strong> Name of the institution.</p>
+    <p><strong>City / State:</strong> Geographic location of the institution.</p>
+    <p><strong>Religion:</strong> Religious affiliation, if applicable.</p>
+    <p><strong>Graduation Rate:</strong> Percentage of students who graduate, projected for 2028.</p>
+    <p><strong>Degrees per Faculty:</strong> Degrees awarded divided by number of FTE faculty.</p>
+    <p><strong>Net Assets / Total Revenue / Net Income:</strong> Financial figures projected for 2028, formatted in USD.</p>
+    <p><strong>Collegiate Survivability Index:</strong> Overall risk percentile (higher is healthier).</p>
+  </div>
+</details>
 
 <label for="universitySelect">Select up to 8 Universities:</label>
 <select id="universitySelect" multiple size="10"></select>
@@ -35,24 +49,27 @@
     'City',
     'State',
     'Religion',
-    'Universities in State',
-    'FTFT',
     'Graduation Rate',
-    'Degrees Awarded',
-    'FTE Faculty',
-    'FTE Students',
-    'Average Course Size',
     'Degrees per Faculty',
     'Net Assets',
-    'Total Assets',
-    'Net Income',
     'Total Revenue',
+    'Net Income',
     'Instructional Expenses',
     'Collegiate Survivability Index',
     'Rank'
   ];
 
   let allData = [];
+
+  function formatValue(metric, value) {
+    if (metric.includes('Rate') || metric.includes('Index')) {
+      return parseFloat(value).toFixed(1) + '%';
+    } else if (metric.includes('Assets') || metric.includes('Revenue') || metric.includes('Income') || metric.includes('Expenses')) {
+      return '$' + parseFloat(value).toLocaleString();
+    } else {
+      return value;
+    }
+  }
 
   function populateSelectors(data) {
     const universitySet = new Set(data.map(d => d.University));
@@ -115,7 +132,7 @@
 
         selectedMetrics.forEach(metric => {
           const cell = row.insertCell();
-          cell.textContent = entry[metric] !== undefined ? entry[metric] : '';
+          cell.textContent = formatValue(metric, entry[metric]);
         });
       }
     });
